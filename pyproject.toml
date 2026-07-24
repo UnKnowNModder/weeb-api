@@ -1,0 +1,13 @@
+[project]
+name = "weeb-api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "cachetools>=7.1.6",
+    "httpx[http2]>=0.28.1",
+    "markdownify>=1.2.3",
+    "tenacity>=9.1.4",
+    "ua-generator>=2.1.2",
+]
