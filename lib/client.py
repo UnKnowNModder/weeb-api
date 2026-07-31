@@ -1,29 +1,32 @@
 from __future__ import annotations
 
-import asyncio
 import os
-from dotenv import load_dotenv
-import httpx
-from selectolax.parser import HTMLParser
 from typing import Any
-from tenacity import retry, retry_if_exception_type, wait_random_exponential, stop_after_attempt
+
+import httpx
+from dotenv import load_dotenv
+from selectolax.parser import HTMLParser
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_random_exponential,
+)
 from ua_generator import generate
 
 load_dotenv()
 
+
 class NetworkError(Exception):
     """Raised for network-related errors, such as connection timeouts or HTTP status codes that survived retries."""
 
-    pass
 
 class ParsingError(Exception):
     """Raised when there's an error parsing HTML content, e.g. site layout changed or we got an empty response."""
 
-    pass
 
 class WeebClient:
-    """Async HTTP client for weebcentral.com.
-    """
+    """Async HTTP client for weebcentral.com."""
 
     BASE_URL = "https://weebcentral.com"
     TIMEOUT = int(os.getenv("REQUEST_TIMEOUT"))
@@ -36,7 +39,7 @@ class WeebClient:
     def __new__(cls) -> WeebClient:
         """Ensures that only one instance of this class exists."""
         if not hasattr(cls, "_instance"):
-            cls._instance = super(WeebClient, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
         return cls._instance
 
     @retry(
@@ -73,8 +76,8 @@ class WeebClient:
             raise NetworkError(f"Failed to get response from {url} due to {e}")
 
     async def create_parser(
-             self, url: str, params: dict[str, Any] | None = None
-                ) -> HTMLParser:
+        self, url: str, params: dict[str, Any] | None = None
+    ) -> HTMLParser:
         """Fetches a URL and returns an HTML parser.
         Args:
             url: The target URL to request.
@@ -88,6 +91,15 @@ class WeebClient:
         return self.clean_html(HTMLParser(response.text))
 
     def clean_html(self, parser: HTMLParser) -> HTMLParser:
-        DROP_TAGS = ["nav", "footer", "header", "script", "style", "noscript", "svg", "iframe"]
+        DROP_TAGS = [
+            "nav",
+            "footer",
+            "header",
+            "script",
+            "style",
+            "noscript",
+            "svg",
+            "iframe",
+        ]
         parser.strip_tags(DROP_TAGS)
         return parser

@@ -1,16 +1,25 @@
-import asyncio
 from pathlib import Path
+
 from google import genai
 from pydantic import BaseModel, Field
 
+
 class SpecField(BaseModel):
-    name: str = Field(description="field name (e.g., 'title', 'url', 'author', 'chapter_text' and etc more.)")
+    name: str = Field(
+        description="field name (e.g., 'title', 'url', 'author', 'chapter_text' and etc more.)"
+    )
     selector: str = Field(description="the css selector targetting the element.")
-    attribute: str = Field(default="text", description="the attribute of the targetted element.")
+    attribute: str = Field(
+        default="text", description="the attribute of the targetted element."
+    )
+
 
 class SelectorSchema(BaseModel):
-    container: str | None = Field(default=None, description="the css selector container (null for single page)")
+    container: str | None = Field(
+        default=None, description="the css selector container (null for single page)"
+    )
     fields: list[SpecField]
+
 
 class Selectors:
     def __init__(self):
@@ -20,7 +29,7 @@ class Selectors:
     def __new__(cls) -> Selectors:
         """Ensures that only one instance of this class exists."""
         if not hasattr(cls, "_instance"):
-            cls._instance = super(Selectors, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
         return cls._instance
 
     async def _heal(self, key: str, html: str, required_fields: list[str]) -> None:
@@ -52,14 +61,13 @@ class Selectors:
                 system_instruction=instruction,
                 response_mime_type="application/json",
                 response_schema=SelectorSchema,
-                temperature=0.0, # Low temperature ensures strict compliance with facts and schema
+                temperature=0.0,  # Low temperature ensures strict compliance with facts and schema
             ),
         )
 
         schema = response.parsed
         self.write(key, schema)
         print("successfully repaired")
-
 
     def load(self, key: str) -> SelectorSchema | None:
         file = (self.path / key).with_suffix(".json")
@@ -74,7 +82,7 @@ class Selectors:
         file.write_text(data=data, encoding="utf-8")
 
     async def fetch(self, key: str, html: str, fields: list[str]):
-        """ fetches the selectors from database, heals using ai if selectors don't exist in the database."""
+        """fetches the selectors from database, heals using ai if selectors don't exist in the database."""
         selector_schema = self.load(key=key)
         if selector_schema:
             return selector_schema

@@ -1,26 +1,23 @@
-import asyncio
-from lib.client import WeebClient
-from lib.extractor import Extractor
-from cachetools import TTLCache
 from dataclasses import dataclass
 
+from cachetools import TTLCache
+
+from lib.client import WeebClient
 from lib.enums import (
     AdultContent,
     AnimeAdaptation,
-    DownloadType,
     Genre,
-    HotSeriesSort,
     OfficialTranslation,
     Order,
     SeriesStatus,
     SeriesType,
     Sort,
 )
+from lib.extractor import Extractor
 
 
 class Weeb:
-    """Provides methods to interact with WeebCentral.com.
-    """
+    """Provides methods to interact with WeebCentral.com."""
 
     def __init__(self) -> None:
         self._client: WeebClient = WeebClient()
@@ -78,7 +75,7 @@ class Weeb:
 
         parser = await self._client.create_parser(url, params)
 
-        matches = await self.extractor.extract('search', parser, ["title", "link"])
+        matches = await self.extractor.extract("search", parser, ["title", "link"])
 
         manga_list = []
         for manga in matches:
@@ -86,6 +83,7 @@ class Weeb:
 
         self._search_cache[cache_key] = manga_list
         return manga_list
+
 
 @dataclass
 class Manga:

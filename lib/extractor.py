@@ -1,6 +1,7 @@
-import asyncio
 from selectolax.parser import HTMLParser, Node
-from lib.selectors import Selectors, SpecField, SelectorSchema
+
+from lib.selectors import Selectors, SelectorSchema, SpecField
+
 
 class Extractor:
     """used for extracting the data from the parser"""
@@ -11,10 +12,12 @@ class Extractor:
     def __new__(cls) -> Extractor:
         """Ensures that only one instance of this class exists."""
         if not hasattr(cls, "_instance"):
-            cls._instance = super(Extractor, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
         return cls._instance
 
-    async def extract(self, key: str, parser: HTMLParser, fields: list[str]) -> list[dict[str, str]]:
+    async def extract(
+        self, key: str, parser: HTMLParser, fields: list[str]
+    ) -> list[dict[str, str]]:
         html = parser.html.strip()
         selector_schema = await self.selectors.fetch(key, html, fields)
         results = await self._parse(parser, selector_schema)
@@ -29,7 +32,9 @@ class Extractor:
             return target.text(strip=True)
         return target.attributes.get(field.attribute, "").strip()
 
-    async def _parse(self, parser: HTMLParser, schema: SelectorSchema) -> list[dict[str, str]]:
+    async def _parse(
+        self, parser: HTMLParser, schema: SelectorSchema
+    ) -> list[dict[str, str]]:
         parsed_results = []
 
         if schema.container:
