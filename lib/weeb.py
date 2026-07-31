@@ -1,10 +1,10 @@
 import asyncio
-import re
-from client import WeebClient
+from lib.client import WeebClient
+from lib.extractor import Extractor
 from cachetools import TTLCache
 from dataclasses import dataclass
 
-from enums import (
+from lib.enums import (
     AdultContent,
     AnimeAdaptation,
     DownloadType,
@@ -24,6 +24,7 @@ class Weeb:
 
     def __init__(self) -> None:
         self._client: WeebClient = WeebClient()
+        self.extractor: Extractor = Extractor()
         # special cache for search.
         self._search_cache: TTLCache[str, list[Manga]] = TTLCache(maxsize=256, ttl=600)
 
@@ -73,14 +74,15 @@ class Weeb:
         if (cached := self._search_cache.get(cache_key)) is not None:
             return cached
 
-        markdown = await self._client.create_markdown(f"{self._client.BASE_URL}/search/data", params=params)
+        url = f"{self._client.BASE_URL}/search/data"
 
-        pattern = rf"(?<!\! )\[([^\]]+)\]\({re.escape(self._client.BASE_URL)}/series/[^\)]+\)"
-        matches = re.findall(pattern, markdown)
+        parser = await self._client.create_parser(url, params)
+
+        matches = await self.extractor.extract('search', parser, ["title", "link"])
 
         manga_list = []
-        for title, link in matches:
-            manga_list.append(Manga(title=title, link=link))
+        for manga in matches:
+            manga_list.append(Manga(title=manga["title"], link=manga["link"]))
 
         self._search_cache[cache_key] = manga_list
         return manga_list
