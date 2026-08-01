@@ -15,7 +15,10 @@ from lib.enums import (
 )
 from lib.extractor import Extractor
 
+_MANGA_DETAILS_CACHE: TTLCache = TTLCache(maxsize=256, ttl=600)
 _CHAPTER_LIST_CACHE: TTLCache = TTLCache(maxsize=256, ttl=600)
+_CHAPTER_PAGES_CACHE: TTLCache = TTLCache(maxsize=256, ttl=1800)
+_PAGE_DATA_CACHE: TTLCache = TTLCache(maxsize=2048, ttl=1800)
 
 
 class Weeb:
@@ -74,7 +77,7 @@ class Weeb:
             return cached
 
         url = f"{self._client.BASE_URL}/search/data"
-        fields = ["title", "link"]
+        fields = ["title", "url"]
 
         parser = await self._client.create_parser(url, params)
 
@@ -82,7 +85,7 @@ class Weeb:
 
         manga_list = []
         for manga in matches:
-            manga_list.append(Manga(title=manga["title"], link=manga["link"]))
+            manga_list.append(Manga(title=manga["title"], url=manga["url"]))
 
         self._search_cache[cache_key] = manga_list
         return manga_list
@@ -97,14 +100,14 @@ class Weeb:
             A list of Manga objects.
         """
         url = f"{self._client.BASE_URL}/recently-added/{page}"
-        fields = ["title", "link"]
+        fields = ["title", "url"]
 
         parser = await self._client.create_parser(url)
         matches = await self._extractor.extract("recently_added", parser, fields)
 
         manga_list = []
         for manga in matches:
-            manga_list.append(Manga(title=manga["title"], link=manga["link"]))
+            manga_list.append(Manga(title=manga["title"], url=manga["url"]))
 
         return manga_list
 
@@ -112,31 +115,78 @@ class Weeb:
 @dataclass(slots=True)
 class Manga:
     title: str
-    link: str
-    _details: dict[str, str | list[str]] = field(default_factory=dict)
+    url: str
 
     _client: WeebClient = field(init=False, default=WeebClient())
     _extractor: Extractor = field(init=False, default=Extractor())
 
     def __hash__(self) -> int:
-        return hash(self.link)
+        return hash(self.url)
 
     async def details(self) -> dict[str, str | list[str]]:
-        if not self._details:
-            fields = [
-                "description",
-                "released",
-                "authors",
-                "tags",
-                "translation",
-                "anime",
-                "type",
-                "status",
-                "adult",
-                "names",
-            ]
-            parser = await self._client.create_parser(self.link)
-            self._details = await self._extractor.extract(
-                "manga_details", parser.css_first("main"), fields
+        if (cached := _MANGA_DETAILS_CACHE.get(self.url)) is not None:
+            return cached
+        fields = [
+            "description",
+            "released",
+            "authors",
+            "tags",
+            "translation",
+            "anime",
+            "type",
+            "status",
+            "adult",
+            "names",
+        ]
+        parser = await self._client.create_parser(self.url)
+        details = await self._extractor.extract(
+            "manga_details", parser.css_first("main"), fields
+        )
+        _MANGA_DETAILS_CACHE[self.url] = details
+        return details
+
+    async def chapters(self) -> list[Chapter]:
+        if (cached := _CHAPTER_LIST_CACHE.get(self.url)) is not None:
+            return cached
+        fields = ["chapter index", "chapter url"]
+        parser = await self._client.create_parser(self.chapters_url())
+        chapters = await self._extractor.extract("chapter_list", parser, fields)
+        chapter_list = []
+        for chapter in chapters:
+            chapter_list.append(
+                Chapter(
+                    index=chapter["chapter index"],
+                    url=f"{self._client.BASE_URL}{chapter['chapter url']}",
+                )
             )
-        return self._details
+        _CHAPTER_LIST_CACHE[self.url] = chapter_list
+        return chapter_list
+
+    def chapters_url(self) -> str:
+        """Returns the URL for the manga's chapter list."""
+        split_url = self.url.split("/")
+        split_url[-1] = "full-chapter-url"
+        return "/".join(split_url)
+
+
+@dataclass(slots=True)
+class Chapter:
+    index: str
+    url: str
+
+    _client: WeebClient = field(init=False, default=WeebClient())
+    _extractor: Extractor = field(init=False, default=Extractor())
+
+    def __hash__(self) -> int:
+        return hash(self.url)
+
+
+@dataclass(slots=True)
+class Page:
+    index: int
+    url: str
+
+    _client: WeebClient = field(init=False, default=WeebClient())
+
+    def __hash__(self) -> int:
+        return hash(self.url)

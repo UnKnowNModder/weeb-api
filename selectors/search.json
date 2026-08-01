@@ -7,7 +7,7 @@
             "attribute": "text"
         },
         {
-            "name": "link",
+            "name": "url",
             "selector": "a.line-clamp-1",
             "attribute": "href"
         }

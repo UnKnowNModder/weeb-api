@@ -1,0 +1,15 @@
+{
+    "container": "#chapter-list > div.flex",
+    "fields": [
+        {
+            "name": "chapter index",
+            "selector": "span.grow > span:first-child",
+            "attribute": "text"
+        },
+        {
+            "name": "chapter url",
+            "selector": "a",
+            "attribute": "href"
+        }
+    ]
+}

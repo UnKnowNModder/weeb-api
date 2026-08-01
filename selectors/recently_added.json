@@ -7,7 +7,7 @@
             "attribute": "text"
         },
         {
-            "name": "link",
+            "name": "url",
             "selector": "a.flex.p-4",
             "attribute": "href"
         }
