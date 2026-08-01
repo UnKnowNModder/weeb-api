@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from cachetools import TTLCache
 
@@ -15,13 +15,15 @@ from lib.enums import (
 )
 from lib.extractor import Extractor
 
+_CHAPTER_LIST_CACHE: TTLCache = TTLCache(maxsize=256, ttl=600)
+
 
 class Weeb:
     """Provides methods to interact with WeebCentral.com."""
 
     def __init__(self) -> None:
         self._client: WeebClient = WeebClient()
-        self.extractor: Extractor = Extractor()
+        self._extractor: Extractor = Extractor()
         # special cache for search.
         self._search_cache: TTLCache[str, list[Manga]] = TTLCache(maxsize=256, ttl=600)
 
@@ -72,10 +74,11 @@ class Weeb:
             return cached
 
         url = f"{self._client.BASE_URL}/search/data"
+        fields = ["title", "link"]
 
         parser = await self._client.create_parser(url, params)
 
-        matches = await self.extractor.extract("search", parser, ["title", "link"])
+        matches = await self._extractor.extract("search", parser, fields)
 
         manga_list = []
         for manga in matches:
@@ -84,8 +87,56 @@ class Weeb:
         self._search_cache[cache_key] = manga_list
         return manga_list
 
+    async def recently_added(self, page: int = 1) -> list[Manga]:
+        """Retrieves a list of recently added manga series from a specific page.
 
-@dataclass
+        Args:
+            page: The page number to retrieve. Defaults to 1.
+
+        Returns:
+            A list of Manga objects.
+        """
+        url = f"{self._client.BASE_URL}/recently-added/{page}"
+        fields = ["title", "link"]
+
+        parser = await self._client.create_parser(url)
+        matches = await self._extractor.extract("recently_added", parser, fields)
+
+        manga_list = []
+        for manga in matches:
+            manga_list.append(Manga(title=manga["title"], link=manga["link"]))
+
+        return manga_list
+
+
+@dataclass(slots=True)
 class Manga:
-    title: str = ""
-    link: str = ""
+    title: str
+    link: str
+    _details: dict[str, str | list[str]] = field(default_factory=dict)
+
+    _client: WeebClient = field(init=False, default=WeebClient())
+    _extractor: Extractor = field(init=False, default=Extractor())
+
+    def __hash__(self) -> int:
+        return hash(self.link)
+
+    async def details(self) -> dict[str, str | list[str]]:
+        if not self._details:
+            fields = [
+                "description",
+                "released",
+                "authors",
+                "tags",
+                "translation",
+                "anime",
+                "type",
+                "status",
+                "adult",
+                "names",
+            ]
+            parser = await self._client.create_parser(self.link)
+            self._details = await self._extractor.extract(
+                "manga_details", parser.css_first("main"), fields
+            )
+        return self._details

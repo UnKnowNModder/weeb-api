@@ -23,14 +23,26 @@ class Extractor:
         results = await self._parse(parser, selector_schema)
         return results
 
-    async def _extract_value(self, node: Node, field: SpecField) -> str:
-        target = node.css_first(field.selector) if field.selector else node
-        if not target:
+    async def _extract_value(self, node: Node, field: SpecField) -> str | list[str]:
+        if not field.selector:
+            targets = [node]
+        else:
+            targets = node.css(field.selector)
+
+        if not targets:
             return ""
 
-        if field.attribute == "text":
-            return target.text(strip=True)
-        return target.attributes.get(field.attribute, "").strip()
+        extracted_values = []
+        for target in targets:
+            if field.attribute == "text":
+                val = target.text(strip=True)
+            else:
+                val = target.attributes.get(field.attribute, "").strip()
+
+            if val:
+                extracted_values.append(val)
+
+        return extracted_values if len(extracted_values) > 1 else extracted_values[0]
 
     async def _parse(
         self, parser: HTMLParser, schema: SelectorSchema
@@ -47,7 +59,7 @@ class Extractor:
         else:
             items = {}
             for field in schema.fields:
-                items[field.name] = await self._extract_value(parser.root, field)
+                items[field.name] = await self._extract_value(parser, field)
             parsed_results.append(items)
 
-        return parsed_results
+        return parsed_results[0] if not schema.container else parsed_results

@@ -1,0 +1,55 @@
+{
+    "container": null,
+    "fields": [
+        {
+            "name": "description",
+            "selector": "p.whitespace-pre-wrap",
+            "attribute": "text"
+        },
+        {
+            "name": "released",
+            "selector": "section ul li:nth-child(5) > span",
+            "attribute": "text"
+        },
+        {
+            "name": "authors",
+            "selector": "a[href*='search?author=']",
+            "attribute": "text"
+        },
+        {
+            "name": "tags",
+            "selector": "a[href*='search?included_tag=']",
+            "attribute": "text"
+        },
+        {
+            "name": "translation",
+            "selector": "a[href*='search?official=']",
+            "attribute": "text"
+        },
+        {
+            "name": "anime",
+            "selector": "a[href*='search?anime=']",
+            "attribute": "text"
+        },
+        {
+            "name": "type",
+            "selector": "a[href*='search?included_type=']",
+            "attribute": "text"
+        },
+        {
+            "name": "status",
+            "selector": "a[href*='search?included_status=']",
+            "attribute": "text"
+        },
+        {
+            "name": "adult",
+            "selector": "a[href*='search?adult=']",
+            "attribute": "text"
+        },
+        {
+            "name": "names",
+            "selector": "li:nth-child(2) > ul.list-disc > li",
+            "attribute": "text"
+        }
+    ]
+}

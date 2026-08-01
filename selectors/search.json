@@ -1,0 +1,15 @@
+{
+    "container": "article.bg-base-300",
+    "fields": [
+        {
+            "name": "title",
+            "selector": "a.line-clamp-1",
+            "attribute": "text"
+        },
+        {
+            "name": "link",
+            "selector": "a.line-clamp-1",
+            "attribute": "href"
+        }
+    ]
+}

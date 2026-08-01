@@ -38,18 +38,33 @@ class Selectors:
         Create CSS selector rules to extract the following fields: {required_fields}.
 
         Rules:
-        - If this page displays a LIST/GRID of cards (e.g., search, updates, chapters), set 'container' to the repeating CSS selector targeting each card.
-        - If this page is a SINGLE page (e.g., synopsis/info page), set 'container' to null.
+        - If this page displays a LIST/GRID of repeating items (e.g., search results, updates, cards), set 'container' to the repeating parent element targeting each card.
+        - If this page is a SINGLE entity view (e.g., info page, reader), set 'container' to null.
         - Set 'attribute' to 'text' for text content, or specific HTML attributes like 'href', 'src', etc.
 
         CSS SELECTOR FORMAT RULES (STRICT):
-        1. ALWAYS PREFER CLASSES: Target elements using their HTML `class` attributes first (including utility classes like `a.line-clamp-1`, `.title-text`, `.font-bold`, etc.).
-        2. USE TAG + CLASS: Combine the HTML element tag with its primary class when available (e.g., `a.line-clamp-1` instead of just `.line-clamp-1`).
-        3. ATTRIBUTE SELECTORS AS LAST RESORT ONLY: Do NOT use attribute substring matching like `a[href*='/series/']` or `[src*='...']` UNLESS the element has absolutely no class attribute.
+        1. REPEATING CONTAINERS (SEARCH / GRID PAGES):
+           - For list/grid pages, ALWAYS combine the repeating element tag with its primary identifying class for 'container' (e.g., `article.bg-base-300` instead of plain `article`).
+           - Inside card containers, prefer direct utility class selectors (e.g., `a.line-clamp-1`) over complex ancestor chains or unnecessary attribute matches.
 
+        2. METADATA ATTRIBUTE MATCHING (SINGLE / DETAILS PAGES):
+           - For metadata links sharing identical styling classes on single-page views (where container is null), use full route attribute matching (e.g., `a[href*='search?author=']`, `a[href*='search?included_tag=']`). Include the route prefix (e.g. 'search?').
+
+        3. ANCHOR STRUCTURAL SELECTORS:
+           - Scope positional text selectors to an explicit parent section or container ID (e.g., `section ul li:nth-child(5) > span` instead of unanchored `ul > li:nth-child(5)`).
+
+        4. NESTED SUB-LIST SCOPING:
+           - When targeting sub-lists wrapped inside parent list items (`<li>`), scope through the parent `li` index first (e.g., `li:nth-child(2) > ul.list-disc > li`). NEVER use `:nth-of-type()` directly on a nested sub-list if each sub-list is wrapped in its own individual parent `li`.
+
+        5. SCALAR FIELDS:
+           - For single scalar fields (e.g., 'latest chapter'), target exact inner paths using `:first-child` (e.g., `#chapter-list > div:first-child span.grow > span:first-child`).
+
+        6. FORBID TAILWIND SPECIAL CHARACTERS:
+           - NEVER use utility classes containing colons ':', slashes '/', brackets '[]', or percentages '%' (e.g., FORBID 'md:w-4/12', 'hover:bg-red', 'w-1/2').
         Raw HTML:
         {html}
         """
+
         instruction = "You are an expert CSS selector engine for web scrapers."
 
         print(f"repairing extractor for {key} page, please wait.")
