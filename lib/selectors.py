@@ -3,6 +3,7 @@ from pathlib import Path
 from google import genai
 from pydantic import BaseModel, Field
 
+from lib.config import Config
 
 class SpecField(BaseModel):
     name: str = Field(
@@ -24,7 +25,8 @@ class SelectorSchema(BaseModel):
 class Selectors:
     def __init__(self):
         self.path = Path.cwd() / "selectors"
-        self.client = genai.Client()
+        self.config = Config()
+        self.client = genai.Client(api_key=self.config.get("api_key"))
 
     def __new__(cls) -> Selectors:
         """Ensures that only one instance of this class exists."""

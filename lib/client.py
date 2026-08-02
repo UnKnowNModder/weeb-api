@@ -1,11 +1,10 @@
 from __future__ import annotations
-
-import os
 from typing import Any
 
 import httpx
-from dotenv import load_dotenv
 from selectolax.parser import HTMLParser
+
+from lib.config import Config
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -14,8 +13,11 @@ from tenacity import (
 )
 from ua_generator import generate
 
-load_dotenv()
 
+
+
+config = Config()
+MAX_RETRIES = config.get("max_retries", 3)
 
 class NetworkError(Exception):
     """Raised for network-related errors, such as connection timeouts or HTTP status codes that survived retries."""
@@ -29,8 +31,7 @@ class WeebClient:
     """Async HTTP client for weebcentral.com."""
 
     BASE_URL = "https://weebcentral.com"
-    TIMEOUT = int(os.getenv("REQUEST_TIMEOUT"))
-    MAX_RETRIES = int(os.getenv("MAX_RETRIES"))
+    TIMEOUT = config.get("request_timeout", 30)
 
     def __init__(self) -> None:
         """Sets up the client."""

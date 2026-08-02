@@ -1,0 +1,6 @@
+{
+    "api_key": "YOUR_API_KEY_HERE",
+    "max_retries": 3,
+    "max_concurrent_requests": 10,
+    "request_timeout": 30
+}

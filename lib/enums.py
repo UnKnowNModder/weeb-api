@@ -123,4 +123,5 @@ class HotSeriesSort:
 
 class DownloadType:
     PDF = "pdf"
+    CBZ = "cbz"
     IMAGE = "image"

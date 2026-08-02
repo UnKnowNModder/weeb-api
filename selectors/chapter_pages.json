@@ -1,0 +1,10 @@
+{
+    "container": null,
+    "fields": [
+        {
+            "name": "image url",
+            "selector": "section#chapter-images img",
+            "attribute": "src"
+        }
+    ]
+}
