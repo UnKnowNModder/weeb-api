@@ -1,1 +1,1 @@
-intialized the base.
+The setup for the whole backend of the manga scraper has been completed with certain features.

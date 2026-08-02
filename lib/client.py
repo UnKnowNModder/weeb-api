@@ -14,16 +14,13 @@ from ua_generator import generate
 
 from lib.config import Config
 
+# maybe use it somehow else without storing it globally later.
 config = Config()
 MAX_RETRIES = config.get("max_retries", 3)
 
 
 class NetworkError(Exception):
-    """Raised for network-related errors, such as connection timeouts or HTTP status codes that survived retries."""
-
-
-class ParsingError(Exception):
-    """Raised when there's an error parsing HTML content, e.g. site layout changed or we got an empty response."""
+    """Raised for network-related errors, such as connection timeouts."""
 
 
 class WeebClient:
@@ -49,7 +46,8 @@ class WeebClient:
         reraise=True,
     )
     async def _request(self, url: str, params: dict[str, Any] | None) -> httpx.Response:
-        # retries are handled by the decorator, so we just raise the exception if it fails.
+        """Internal method to perform an HTTP GET request with retries."""
+        # mhm, rotating user agents should be enough to avoid getting blocked.
         headers = {"User-Agent": generate().text}
         response = await self._client.get(url, params=params, headers=headers)
         response.raise_for_status()
@@ -91,6 +89,7 @@ class WeebClient:
         return self.clean_html(HTMLParser(response.text))
 
     def clean_html(self, parser: HTMLParser) -> HTMLParser:
+        """Cleans the html by stripping out unwanted tags, less headache to parse."""
         DROP_TAGS = [
             "nav",
             "footer",

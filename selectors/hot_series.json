@@ -1,0 +1,15 @@
+{
+    "container": "a.flex.p-4",
+    "fields": [
+        {
+            "name": "title",
+            "selector": "a.flex.p-4",
+            "attribute": "text"
+        },
+        {
+            "name": "url",
+            "selector": "a.flex.p-4",
+            "attribute": "href"
+        }
+    ]
+}

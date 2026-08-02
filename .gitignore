@@ -1,3 +1,4 @@
 test.py
+.ruff_cache
 config.json
 **/__pycache__/

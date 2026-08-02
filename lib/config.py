@@ -1,3 +1,5 @@
+"""Configuration for our application."""
+
 import json
 from pathlib import Path
 

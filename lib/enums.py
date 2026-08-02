@@ -1,3 +1,5 @@
+"""Our enum types for the need of adjusments in the Application."""
+
 from enum import Enum
 
 

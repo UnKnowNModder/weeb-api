@@ -1,17 +1,12 @@
-import asyncio
-import shutil
-from dataclasses import dataclass, field
-from pathlib import Path
+"""Core Weeb file."""
 
-from cachetools import TTLCache
-
+from lib.caches import _MANGA_SEARCH_CACHE
 from lib.client import WeebClient
-from lib.config import Config
 from lib.enums import (
     AdultContent,
     AnimeAdaptation,
-    DownloadType,
     Genre,
+    HotSeriesSort,
     OfficialTranslation,
     Order,
     SeriesStatus,
@@ -19,10 +14,7 @@ from lib.enums import (
     Sort,
 )
 from lib.extractor import Extractor
-
-_MANGA_DETAILS_CACHE: TTLCache = TTLCache(maxsize=256, ttl=600)
-_CHAPTER_LIST_CACHE: TTLCache = TTLCache(maxsize=256, ttl=600)
-_CHAPTER_PAGES_CACHE: TTLCache = TTLCache(maxsize=256, ttl=1800)
+from lib.models.manga import Manga
 
 
 class Weeb:
@@ -31,8 +23,6 @@ class Weeb:
     def __init__(self) -> None:
         self._client: WeebClient = WeebClient()
         self._extractor: Extractor = Extractor()
-        # special cache for search.
-        self._search_cache: TTLCache[str, list[Manga]] = TTLCache(maxsize=256, ttl=600)
 
     async def search(
         self,
@@ -77,7 +67,7 @@ class Weeb:
             "display_mode": "Full Display",
         }
         cache_key = str(sorted(params.items()))
-        if (cached := self._search_cache.get(cache_key)) is not None:
+        if (cached := _MANGA_SEARCH_CACHE.get(cache_key)) is not None:
             return cached
 
         url = f"{self._client.BASE_URL}/search/data"
@@ -89,9 +79,11 @@ class Weeb:
 
         manga_list = []
         for manga in matches:
-            manga_list.append(Manga(title=manga["title"], url=manga["url"]))
+            manga_list.append(
+                Manga(title=manga["title"], url=self.fix_url(manga["url"]))
+            )
 
-        self._search_cache[cache_key] = manga_list
+        _MANGA_SEARCH_CACHE[cache_key] = manga_list
         return manga_list
 
     async def recently_added(self, page: int = 1) -> list[Manga]:
@@ -111,144 +103,43 @@ class Weeb:
 
         manga_list = []
         for manga in matches:
-            manga_list.append(Manga(title=manga["title"], url=manga["url"]))
+            manga_list.append(
+                Manga(title=manga["title"], url=self.fix_url(manga["url"]))
+            )
 
         return manga_list
 
-
-@dataclass(slots=True)
-class Manga:
-    title: str
-    url: str
-
-    _client: WeebClient = field(init=False, default=WeebClient())
-    _extractor: Extractor = field(init=False, default=Extractor())
-
-    def __hash__(self) -> int:
-        return hash(self.url)
-
-    async def details(self) -> dict[str, str | list[str]]:
-        if (cached := _MANGA_DETAILS_CACHE.get(self.url)) is not None:
-            return cached
-        fields = [
-            "description",
-            "released",
-            "authors",
-            "tags",
-            "translation",
-            "anime",
-            "type",
-            "status",
-            "adult",
-            "names",
-        ]
-        parser = await self._client.create_parser(self.url)
-        details = await self._extractor.extract(
-            "manga_details", parser.css_first("main"), fields
-        )
-        _MANGA_DETAILS_CACHE[self.url] = details
-        return details
-
-    async def chapters(self) -> list[Chapter]:
-        if (cached := _CHAPTER_LIST_CACHE.get(self.url)) is not None:
-            return cached
-        fields = ["chapter index", "chapter url"]
-        parser = await self._client.create_parser(self.chapters_url())
-        chapters = await self._extractor.extract("chapter_list", parser, fields)
-        chapter_list = []
-        for chapter in chapters:
-            chapter_list.append(
-                Chapter(
-                    index=chapter["chapter index"],
-                    url=f"{self._client.BASE_URL}{chapter['chapter url']}",
-                )
-            )
-        _CHAPTER_LIST_CACHE[self.url] = chapter_list
-        return chapter_list
-
-    def chapters_url(self) -> str:
-        """Returns the URL for the manga's chapter list."""
-        split_url = self.url.split("/")
-        split_url[-1] = "full-chapter-url"
-        return "/".join(split_url)
-
-
-@dataclass(slots=True)
-class Chapter:
-    index: str
-    url: str
-
-    _client: WeebClient = field(init=False, default=WeebClient())
-    _extractor: Extractor = field(init=False, default=Extractor())
-    _config: Config = field(init=False, default_factory=Config)
-
-    def __hash__(self) -> int:
-        return hash(self.url)
-
-    async def pages(self) -> list[Page]:
-        if (cached := _CHAPTER_PAGES_CACHE.get(self.url)) is not None:
-            return cached
-
-        url = f"{self.url}/images"
-        params = {"is_prev": "False", "reading_style": "long_strip"}
-        fields = ["image url"]
-        parser = await self._client.create_parser(url, params)
-        pages = await self._extractor.extract("chapter_pages", parser, fields)
-        page_list = []
-        for index, page in enumerate(pages["image url"]):
-            page_list.append(
-                Page(
-                    index=f"{index:03d}.png",
-                    url=page,
-                )
-            )
-        _CHAPTER_PAGES_CACHE[self.url] = page_list
-        return page_list
-
-    async def download(self, dir: Path, download_type: DownloadType) -> None:
-        """Downloads the chapter to the specified directory.
+    async def hot_series(
+        self, sort: HotSeriesSort = HotSeriesSort.WEEKLY
+    ) -> list[Manga]:
+        """Retrieves a list of trending manga series from a specific page.
 
         Args:
-            dir: The directory where the chapter will be saved.
-            download_type: The type of download to perform.
+            sort: The sorting criteria for the hot series (e.g., WEEKLY, MONTHLY).
         """
-        chapter_dir = dir / self.index
-        chapter_dir.mkdir(parents=True, exist_ok=True)
-        pages = await self.pages()
-        semaphore = asyncio.Semaphore(self._config.get("max_concurrent_requests", 10))
-        tasks = [page.download(chapter_dir, semaphore) for page in pages]
-        await asyncio.gather(*tasks)
+        url = f"{self._client.BASE_URL}/hot-series?sort={sort}"
+        fields = ["title", "url"]
 
-        if download_type == DownloadType.IMAGE:
-            return
+        parser = await self._client.create_parser(url)
+        matches = await self._extractor.extract("hot_series", parser, fields)
 
-        elif download_type == DownloadType.PDF:
-            from lib.utils import convert_images_to_pdf
+        manga_list = []
+        for manga in matches:
+            manga_list.append(
+                Manga(title=manga["title"], url=self.fix_url(manga["url"]))
+            )
 
-            convert_images_to_pdf(chapter_dir, chapter_dir.with_suffix(".pdf"))
-        else:
-            from lib.utils import convert_images_to_cbz
+        return manga_list
 
-            convert_images_to_cbz(chapter_dir, chapter_dir.with_suffix(".cbz"))
+    def fix_url(self, url: str) -> str:
+        """Fixes the URL to ensure it points to the manga's main page.
 
-        shutil.rmtree(chapter_dir)
+        Args:
+            url: The original URL.
 
-
-@dataclass(slots=True)
-class Page:
-    index: int
-    url: str
-
-    _client: WeebClient = field(init=False, default=WeebClient())
-
-    def __hash__(self) -> int:
-        return hash(self.url)
-
-    async def download(self, dir: Path, semaphore: asyncio.Semaphore) -> None:
-        file_path = dir / self.index
-        if file_path.exists():
-            return
-
-        async with semaphore:
-            response = await self._client.get_response(self.url)
-            file_path.write_bytes(response.content)
+        Returns:
+            The fixed URL pointing to the manga's main page.
+        """
+        if not url.startswith(self._client.BASE_URL):
+            url = f"{self._client.BASE_URL}{url}"
+        return url
