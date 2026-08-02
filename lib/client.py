@@ -1,10 +1,9 @@
 from __future__ import annotations
+
 from typing import Any
 
 import httpx
 from selectolax.parser import HTMLParser
-
-from lib.config import Config
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -13,11 +12,11 @@ from tenacity import (
 )
 from ua_generator import generate
 
-
-
+from lib.config import Config
 
 config = Config()
 MAX_RETRIES = config.get("max_retries", 3)
+
 
 class NetworkError(Exception):
     """Raised for network-related errors, such as connection timeouts or HTTP status codes that survived retries."""

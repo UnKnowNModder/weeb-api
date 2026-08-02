@@ -14,7 +14,7 @@ class Config:
 
     def save_config(self) -> None:
         self.config_file.write_text(json.dumps(self.data, indent=4))
-        
+
     def get(self, key: str, default=None):
         return self.data.get(key, default)
 

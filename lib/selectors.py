@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from lib.config import Config
 
+
 class SpecField(BaseModel):
     name: str = Field(
         description="field name (e.g., 'title', 'url', 'author', 'chapter_text' and etc more.)"

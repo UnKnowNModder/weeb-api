@@ -1,11 +1,12 @@
 import asyncio
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from cachetools import TTLCache
 
-from lib.config import Config
 from lib.client import WeebClient
+from lib.config import Config
 from lib.enums import (
     AdultContent,
     AnimeAdaptation,
@@ -18,8 +19,6 @@ from lib.enums import (
     Sort,
 )
 from lib.extractor import Extractor
-
-import shutil
 
 _MANGA_DETAILS_CACHE: TTLCache = TTLCache(maxsize=256, ttl=600)
 _CHAPTER_LIST_CACHE: TTLCache = TTLCache(maxsize=256, ttl=600)
@@ -233,7 +232,6 @@ class Chapter:
             convert_images_to_cbz(chapter_dir, chapter_dir.with_suffix(".cbz"))
 
         shutil.rmtree(chapter_dir)
-        
 
 
 @dataclass(slots=True)
@@ -254,4 +252,3 @@ class Page:
         async with semaphore:
             response = await self._client.get_response(self.url)
             file_path.write_bytes(response.content)
-
