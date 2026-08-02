@@ -17,6 +17,7 @@ from lib.weeb import WeebClient
 class Chapter:
     index: str
     url: str
+    manga: str
 
     _client: WeebClient = field(init=False, default_factory=WeebClient)
     _extractor: Extractor = field(init=False, default_factory=Extractor)
@@ -58,7 +59,7 @@ class Chapter:
             dir: The directory where the chapter will be saved.
             download_type: The type of download to perform.
         """
-        chapter_dir = dir / self.index
+        chapter_dir = dir / self.manga / self.index
         chapter_dir.mkdir(parents=True, exist_ok=True)
         pages = await self.pages()
         # semaphore with limit so we can download pages much faster without being rate-limited.

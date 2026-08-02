@@ -42,6 +42,7 @@ class Extractor:
         if not results:
             return False
 
+        results = [results] if isinstance(results, dict) else results
         for result in results:
             for field in required_fields:
                 if not result.get(field):

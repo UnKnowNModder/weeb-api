@@ -57,6 +57,7 @@ class Manga:
                 Chapter(
                     index=chapter["chapter index"],
                     url=f"{self._client.BASE_URL}{chapter['chapter url']}",
+                    manga=self.title,
                 )
             )
         _CHAPTER_LIST_CACHE[self.url] = chapter_list
